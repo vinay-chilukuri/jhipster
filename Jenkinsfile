@@ -44,8 +44,20 @@ node {
         }
 
         stage('packaging') {
-            sh "./mvnw -ntp verify -Pprod -DskipTests"
+            sh "./mvnw -ntp verify deploy -Pprod -DskipTests"
             archiveArtifacts artifacts: '**/target/*.jar', fingerprint: true
         }
+        stage('quality analysis') {
+            withSonarQubeEnv('sonar') {
+                sh "./mvnw -ntp initialize sonar:sonar"
+            }
+        }
+    }
+
+    def dockerImage
+    stage('publish docker') {
+        // A pre-requisite to this step is to setup authentication to the docker registry
+        // https://github.com/GoogleContainerTools/jib/tree/master/jib-maven-plugin#authentication-methods
+        sh "./mvnw -ntp jib:build"
     }
 }
